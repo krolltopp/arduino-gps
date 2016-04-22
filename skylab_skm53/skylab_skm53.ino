@@ -1,82 +1,102 @@
-#include <TinyGPS.h>
+#include <TinyGPS++.h>
 #include <SoftwareSerial.h>
+/*
+   This sample sketch demonstrates the normal use of a TinyGPS++ (TinyGPSPlus) object.
+   It requires the use of SoftwareSerial, and assumes that you have a
+   4800-baud serial GPS device hooked up on pins 4(rx) and 3(tx).
+*/
+static const int RXPin = 2, TXPin = 3;
+static const uint32_t GPSBaud = 9600;
 
-unsigned long fix_age;
-SoftwareSerial GPS(2, 3); // RX, TX
-TinyGPS gps;
-void gpsdump(TinyGPS &gps);
-bool feedgps();
-void getGPS();
-long lat, lon;
-float LAT, LON;
+// The TinyGPS++ object
+TinyGPSPlus gps;
 
-void setup() {
-  GPS.begin(9600);
-  Serial.begin(115200);
-}
+// The serial connection to the GPS device
+SoftwareSerial ss(RXPin, TXPin);
 
-void loop() {
-  long lat, lon;
-  unsigned long fix_age, time, date, speed, course;
-  unsigned long chars;
-  unsigned short sentences, failed_checksum;
-  // retrieves +/- lat/long in 100000ths of a degree
-  gps.get_position(&lat, &lon, &fix_age);
-  // time in hh:mm:ss, date in dd/mm/yy
-  /*gps.get_datetime(&date, &time, &fix_age);
-    year = date % 100;
-    month = (date / 100) % 100;
-    day = date / 10000;
-    hour = time / 1000000;
-    minute =  (time / 10000) % 100;
-    second = (time / 100) % 100;
-    Serial.print("Date: ");
-    Serial.print(year); Serial.print("/");
-    Serial.print(month); Serial.print("/");
-    Serial.print(day);
-    Serial.print(" :: Time: ");
-    Serial.print(hour); Serial.print(":");
-    Serial.print(minute); Serial.print(":");
-    Serial.println(second);
-  */
-  getGPS();
-  Serial.print("Latitude : ");
-  Serial.print(LAT / 100000, 7);
-  Serial.print(" :: Longitude : ");
-  Serial.println(LON / 100000, 7);
-}
-
-void getGPS() {
-  bool newdata = false;
-  unsigned long start = millis();
-  // Every 1 seconds we print an update
-  while (millis() - start < 1000)
-  {
-    if (feedgps ()) {
-      newdata = true;
-    }
-  }
-  if (newdata)
-  {
-    gpsdump(gps);
-  }
-}
-
-bool feedgps() {
-  while (GPS.available())
-  {
-    if (gps.encode(GPS.read()))
-      return true;
-  }
-  return 0;
-}
-void gpsdump(TinyGPS &gps)
+void setup()
 {
-  //byte month, day, hour, minute, second, hundredths;
-  gps.get_position(&lat, &lon);
-  LAT = lat;
-  LON = lon;
+  Serial.begin(115200);
+  ss.begin(GPSBaud);
+
+  Serial.println(F("DeviceExample.ino"));
+  Serial.println(F("A simple demonstration of TinyGPS++ with an attached GPS module"));
+  Serial.print(F("Testing TinyGPS++ library v. ")); Serial.println(TinyGPSPlus::libraryVersion());
+  Serial.println(F("by Mikal Hart"));
+  Serial.println();
+}
+
+void loop()
+{
+  // This sketch displays information every time a new sentence is correctly encoded.
+  while (ss.available() > 0)
+    if (gps.encode(ss.read()))
+      displayInfo();
+
+  if (millis() > 5000 && gps.charsProcessed() < 10)
   {
-    feedgps(); // If we don't feed the gps during this long routine, we may drop characters and get checksum errors
+    Serial.println(F("No GPS detected: check wiring."));
+    while(true);
   }
+}
+
+void displayInfo()
+{
+  //Serial.print(F("Location: "));
+  if (gps.location.isValid() && gps.location.isUpdated())
+  {
+    Serial.print(F("Location: "));
+    Serial.print(gps.location.lat(), 6);
+    Serial.print(F(","));
+    Serial.print(gps.location.lng(), 6);
+  }
+  /*
+  else
+  {
+    Serial.print(F("INVALID"));
+  }
+  */
+
+  //Serial.print(F("  Date/Time: "));
+  /*
+  if (gps.date.isValid() && gps.date.isUpdated())
+  {
+    Serial.print(F("  Date/Time: "));
+    Serial.print(gps.date.month());
+    Serial.print(F("/"));
+    Serial.print(gps.date.day());
+    Serial.print(F("/"));
+    Serial.print(gps.date.year());
+  }
+  */
+  /*
+  else
+  {
+    Serial.print(F("INVALID"));
+  }
+  */
+
+  Serial.print(F(" "));
+  if (gps.time.isValid() && gps.time.isUpdated())
+  {
+    if (gps.time.hour() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.hour());
+    Serial.print(F(":"));
+    if (gps.time.minute() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.minute());
+    Serial.print(F(":"));
+    if (gps.time.second() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.second());
+    Serial.print(F("."));
+    if (gps.time.centisecond() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.centisecond());
+  }
+  /*
+  else
+  {
+    Serial.print(F("INVALID"));
+  }
+  */
+
+  Serial.println();
 }
