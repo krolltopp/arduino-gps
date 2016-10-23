@@ -1,3 +1,5 @@
+#include <Arduino.h>
+
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 /*
@@ -50,12 +52,10 @@ void displayInfo()
     Serial.print(F(","));
     Serial.print(gps.location.lng(), 6);
   }
-  /*
   else
   {
     Serial.print(F("INVALID"));
   }
-  */
 
   //Serial.print(F("  Date/Time: "));
   /*
